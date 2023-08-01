@@ -1,0 +1,61 @@
+# This file is a template, and might need editing before it works on your project.
+# To contribute improvements to CI/CD templates, please follow the Development guide at:
+# https://docs.gitlab.com/ee/development/cicd/templates.html
+# This specific template is located at:
+# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
+
+# This is a sample GitLab CI/CD configuration file that should run without any modifications.
+# It demonstrates a basic 3 stage CI/CD pipeline. Instead of real tests or scripts,
+# it uses echo commands to simulate the pipeline execution.
+#
+# A pipeline is composed of independent jobs that run scripts, grouped into stages.
+# Stages run in sequential order, but jobs within stages run in parallel.
+#
+# For more information, see: https://docs.gitlab.com/ee/ci/yaml/README.html#stages
+
+image: registry.gddi.com/devel/inference-engine-devel:1.0.1
+
+# services:
+#   - name: docker:dind
+#     command: ["--insecure-registry", "registry.gddi.com", "--registry-mirror", "http://192.168.1.33:5000/"]
+
+# before_script:
+#   - export TAG_VERSION=v1.4.21-$(git show -s --format=%cD $CI_COMMIT_SHA)
+
+build:
+    stage: build
+    script:
+    #nvidia
+        - cmake -S . -Bbuild-nvidia -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchains/x86_64_nvidia_gnu.toolchain
+        - cmake --build build-nvidia/ --target install
+
+    #intel
+        - cmake -S . -Bbuild-intel -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchains/x86_64_intel_gnu.toolchain
+        - cmake --build build-intel/ --target install
+
+    #bm1684
+        - cmake -S . -Bbuild-bm1684 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchains/aarch64_linux_bm1684.toolchain
+        - cmake --build build-bm1684/ --target install
+    
+    #mlu220
+        - cmake -S . -Bbuild-mlu220 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchains/aarch64_linux_mlu220.toolchain
+        - cmake --build build-mlu220/ --target install
+
+    #rv1126
+        - cmake -S . -Bbuild-rv1126 -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=$PWD/cmake/toolchains/armv7_linux_rv1126.toolchain
+        - cmake --build build-rv1126/ --target install
+
+    artifacts:
+        paths:
+            - release
+
+# deploy:
+#     stage: deploy
+#     before_script:
+#         - echo $REGISTRY_TOKEN | docker login -u'robot$base+gitlab-runner' --password-stdin registry.gddi.com
+#     script:
+#         - docker build . -f docker/nvidia/Dockerfile -t devops.io:12580/inference/nvidia-engine:$TAG_VERSION
+#         - docker build . -f docker/bm1684/Dockerfile -t devops.io:12580/inference/bm1684-engine:$TAG_VERSION
+#         - docker push devops.io:12580/inference/nvidia-engine:$TAG_VERSION
+#         - docker push devops.io:12580/inference/bm1684-engine:$TAG_VERSION
+#     environment: production

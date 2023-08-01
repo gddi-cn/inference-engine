@@ -1,0 +1,159 @@
+{
+    "TGSG-01T": {
+        "name": "声光报警器",
+        "type": "AudibleAlarm",
+        "template": [
+            "{0x10}{0x00}{0x10}{0x00}{0x05}{0x0A}{alarm_mode}{alarm_volume}{repertoire}{play_mode}{blink_mode}"
+        ],
+        "properties": {
+            "slave_list": {
+                "name": "从机 ID",
+                "type": "numberArray",
+                "enums": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16
+                ]
+            },
+            "alarm_mode": {
+                "name": "警报模式",
+                "type": "stringMap",
+                "options": {
+                    "0x0001": "警报器",
+                    "0x0002": "警示灯",
+                    "0x0003": "警报器和警示灯"
+                }
+            },
+            "alarm_volume": {
+                "name": "警报器音量",
+                "type": "number",
+                "default": 0
+            },
+            "play_mode": {
+                "name": "警报器播放模式",
+                "type": "stringMap",
+                "options": {
+                    "0x0001": "循环",
+                    "0x0002": "单次"
+                },
+                "default": "0x0002"
+            },
+            "repertoire": {
+                "name": "警报器音效",
+                "type": "stringMap",
+                "options": {
+                    "0x0101": "1",
+                    "0x0102": "2",
+                    "0x0103": "3",
+                    "0x0104": "4",
+                    "0x0105": "5",
+                    "0x0106": "6",
+                    "0x0107": "7",
+                    "0x0108": "8",
+                    "0x0109": "9",
+                    "0x010A": "10"
+                },
+                "default": "0x0101"
+            },
+            "blink_mode": {
+                "name": "警示灯闪烁模式",
+                "type": "stringMap",
+                "options": {
+                    "0x0101": "非同步爆闪",
+                    "0x0201": "同步爆闪"
+                },
+                "default": "0x0101"
+            }
+        }
+    },
+    "TGSG-01T-X": {
+        "name": "声光语音报警器",
+        "type": "VoiceAlarm",
+        "template": [
+            "{0x10}{0x04}{0x0E}{0x00}{0x05}{0x0A}{0x00}{0x00}{alarm_volume}{0x01}{0x02}{play_mode}{blink_mode}",
+            "{0x10}{0x02}{0x01}{0x00}{0x03}{0x06}{0x00}{0x00}{0x00}{0x00}{0x00}{0x00}",
+            "{0x1C}{alarm_mode}{alarm_volume}{0xA1}{0x02}{play_mode}{blink_mode}{voice_type}{0x00}{0x00}{0x00}{0x00}{voice_text}"
+        ],
+        "properties": {
+            "slave_list": {
+                "name": "从机 ID",
+                "type": "numberArray",
+                "enums": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16
+                ]
+            },
+            "alarm_mode": {
+                "name": "警报模式",
+                "type": "stringMap",
+                "options": {
+                    "0x0001": "警报器",
+                    "0x0002": "警示灯",
+                    "0x0003": "警报器和警示灯"
+                }
+            },
+            "alarm_volume": {
+                "name": "警报器音量",
+                "type": "number",
+                "default": 0
+            },
+            "play_mode": {
+                "name": "警报器播放模式",
+                "type": "stringMap",
+                "options": {
+                    "0x0001": "循环",
+                    "0x0002": "单次"
+                },
+                "default": "0x0002"
+            },
+            "blink_mode": {
+                "name": "警示灯闪烁模式",
+                "type": "stringMap",
+                "options": {
+                    "0x0101": "非同步爆闪",
+                    "0x0201": "同步爆闪"
+                },
+                "default": "0x0101"
+            },
+            "voice_type": {
+                "name": "发声选择",
+                "type": "stringMap",
+                "options": {
+                    "0x0000": "女声",
+                    "0x0001": "男声"
+                },
+                "default": "0x0000"
+            },
+            "voice_text": {
+                "name": "语音文字",
+                "type": "string",
+                "default": ""
+            }
+        }
+    }
+}

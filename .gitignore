@@ -1,0 +1,17 @@
+cmake-build-debug-visual-studio
+cmake-build-debug-119
+cmake-build-release-119
+.idea
+cmake-build-release-visual-studio
+build*
+.vscode
+data/debug_api_www
+cmake-build-*
+release*
+
+# libs
+*.log
+/build_vs_dbg/
+libhv.*.log
+/.clion.source.upload.marker
+.cache

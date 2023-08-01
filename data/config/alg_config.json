@@ -1,0 +1,5 @@
+{
+    "conf_thresh":0.3,
+    "nms_thresh":0.65,
+    "mns_thresh":0.65
+}

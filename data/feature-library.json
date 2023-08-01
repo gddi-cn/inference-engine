@@ -1,0 +1,76 @@
+{
+    "nodes": [
+        {
+            "id": 0,
+            "name": "FeatureLibrary_v2_0",
+            "props": {
+                "folder_path": "$folder_path"
+            },
+            "runner": "preprocess",
+            "type": "FeatureLibrary_v2"
+        },
+        {
+            "id": 1,
+            "name": "Inference_v2_1",
+            "props": {
+                "best_threshold": 0.7,
+                "labels": [
+                    "all"
+                ],
+                "mod_id": "465280736055369728",
+                "mod_iter_id": "465280736055369729",
+                "mod_labels": {
+                    "all": {
+                        "checked": true,
+                        "color": [
+                            241,
+                            0,
+                            0
+                        ],
+                        "label": "all"
+                    }
+                },
+                "mod_name": "model_1",
+                "mod_path": "/home/models/$model_id_0.gem"
+            },
+            "runner": "inference_1",
+            "type": "Inference_v2"
+        },
+        {
+            "id": 2,
+            "name": "Inference_v2_2",
+            "props": {
+                "best_threshold": -1,
+                "labels": [],
+                "mod_id": "465280736055369728",
+                "mod_iter_id": "465280736055369729",
+                "mod_labels": {},
+                "mod_name": "model_2",
+                "mod_path": "/home/models/$model_id_1.gem"
+            },
+            "runner": "inference_2",
+            "type": "Inference_v2"
+        }
+    ],
+    "pipe": [
+        [
+            0,
+            0,
+            1,
+            0
+        ],
+        [
+            1,
+            0,
+            2,
+            0
+        ],
+        [
+            2,
+            0,
+            0,
+            0
+        ]
+    ],
+    "version": "v1"
+}
