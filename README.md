@@ -3,6 +3,10 @@
 ## 1.1 Linux
 ### 1.1.1 基础开发环境
 ```bash
+# 构建开发镜像，或者直接使用 gddi2020.qicp.vip:12580/devel/inference-engine-tx5368:1.0.0
+docker build . -f docker/base-devel/Dockerfile -t inference-engine-tx5368:1.0.0
+```
+```bash
 # 创建容器
 docker run -itd --name=cpp-devel --privileged=true --net=host gddi2020.qicp.vip:12580/devel/inference-engine-tx5368:1.0.0
 ```
