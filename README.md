@@ -3,11 +3,8 @@
 ## 1.1 Linux
 ### 1.1.1 基础开发环境
 ```bash
-# 构建镜像
-docker build . -f docker/base-devel/Dockerfile -t hub.gddi.com/devel/inference-engine-devel:1.0.0
-
 # 创建容器
-docker run -itd --name=cpp-devel --privileged=true --net=host --gpus=all -e NVIDIA_DRIVER_CAPABILITIES=compute,utility,video hub.gddi.com/devel/inference-engine-devel:1.0.0
+docker run -itd --name=cpp-devel --privileged=true --net=host gddi2020.qicp.vip:12580/devel/inference-engine-tx5368:1.0.0
 ```
 
 ### 1.1.2 CMake 编译
@@ -16,8 +13,8 @@ docker run -itd --name=cpp-devel --privileged=true --net=host --gpus=all -e NVID
 cmake -S . -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Release
 
 # 交叉编译
-cmake -S . -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY
-
+cmake -S . -Bbuild -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/aarch64_linux_tx5368.toolchain
+cmake --build build
 ```
 
 ### 1.2.2 VSCode(CMake Tools)

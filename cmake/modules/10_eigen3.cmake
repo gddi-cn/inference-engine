@@ -8,7 +8,7 @@ endif()
 
 ExternalProject_Add(
     Eigen3_external
-    GIT_REPOSITORY http://git.mirror.gddi.io/mirror/eigen.git
+    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
     GIT_TAG 3.4.1
     GIT_SHALLOW TRUE
     PREFIX ${EXTERNAL_INSTALL_LOCATION}
@@ -18,4 +18,4 @@ ExternalProject_Add(
 
 add_library(Eigen3::Eigen INTERFACE IMPORTED)
 add_dependencies(Eigen3::Eigen Eigen3_external)
-include_directories(${Eigen3_INCLUDE_DIRS}/eigen3)
+include_directories(${EXTERNAL_INSTALL_LOCATION}/include/eigen3)

@@ -7,31 +7,33 @@ else()
 if (openssl_FOUND)
     ExternalProject_Add(
         libhv_external
-        GIT_REPOSITORY http://git.mirror.gddi.io/mirror/libhv.git
+        GIT_REPOSITORY https://github.com/ithewei/libhv.git
         GIT_TAG v1.2.6
         PREFIX ${EXTERNAL_INSTALL_LOCATION}
         CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED=OFF
             -DCMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-        BUILD_BYPRODUCTS hv_static
+        BUILD_BYPRODUCTS ${EXTERNAL_INSTALL_LOCATION}/lib/libhv_static.a
     )
 else()
     ExternalProject_Add(
         libhv_external
         DEPENDS openssl_external
-        GIT_REPOSITORY http://git.mirror.gddi.io/mirror/libhv.git
+        GIT_REPOSITORY https://github.com/ithewei/libhv.git
         GIT_TAG v1.2.6
         PREFIX ${EXTERNAL_INSTALL_LOCATION}
         CMAKE_ARGS -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
             -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED=OFF
             -DCMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR} -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-        BUILD_BYPRODUCTS hv_static
+        BUILD_BYPRODUCTS ${EXTERNAL_INSTALL_LOCATION}/lib/libhv_static.a
     )
 endif()
 
     add_library(hv_static STATIC IMPORTED)
     add_dependencies(hv_static libhv_external)
-    set_target_properties(hv_static PROPERTIES IMPORTED_LOCATION "hv_static" INTERFACE_LINK_LIBRARIES "crypto;ssl")
+    set_target_properties(hv_static PROPERTIES
+        IMPORTED_LOCATION "${EXTERNAL_INSTALL_LOCATION}/lib/libhv_static.a"
+        INTERFACE_LINK_LIBRARIES "${EXTERNAL_INSTALL_LOCATION}/lib/libcrypto.a;${EXTERNAL_INSTALL_LOCATION}/lib/libssl.a")
 endif()
 
 file(GLOB CodeFiles

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14.0)
-project(inference-engine VERSION 1.4.27 LANGUAGES CXX C CUDA)
+project(inference-engine VERSION 1.4.27 LANGUAGES CXX C)
 
 include(FetchContent)
 include(ExternalProject)
