@@ -131,4 +131,8 @@ void gddi::NodeManager::bind_all_node_to_node_manager() {
     bind_node_creator<gddi::nodes::ImageServer_v2>("常驻图像检测组件");
 #endif
 
+#if defined(WITH_OPENCV) && defined(WITH_CPPZMQ)
+    bind_node_creator<gddi::nodes::JpegPreviewer_v2>("ZMQ cv::Mat图片推送");
+#endif
+
 }

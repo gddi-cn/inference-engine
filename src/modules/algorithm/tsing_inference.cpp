@@ -93,8 +93,6 @@ void TsingInference::inference(const std::string &task_name, const std::shared_p
                 }
             }
         });
-
-    infer_callback_(info->infer_frame_idx, impl_->algo_type, {});
 }
 
 AlgoType TsingInference::inference(const std::string &task_name, const std::shared_ptr<nodes::FrameInfo> &info,
