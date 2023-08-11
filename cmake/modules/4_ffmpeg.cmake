@@ -21,7 +21,7 @@ target_link_libraries(gddi_codec PRIVATE ${FFMPEG_LIBRARIES} spdlog::spdlog Boos
 set(LinkLibraries "${LinkLibraries};gddi_codec;${FFMPEG_LIBRARIES}")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/release/${CMAKE_SYSTEM_PROCESSOR}/${TARGET_CHIP}/${CHIP_NAME}")
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/release")
     install(TARGETS gddi_codec
         ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include)

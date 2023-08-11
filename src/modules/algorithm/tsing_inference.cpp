@@ -14,16 +14,9 @@ namespace algo {
 struct TsingInference::Impl {
     std::unique_ptr<gddeploy::InferAPI> alg_impl;
     AlgoType algo_type{AlgoType::kUndefined};
-
-    std::unique_ptr<BufSurfaceParams> surf_params;
-    std::shared_ptr<gddeploy::BufSurfaceWrapper> surf_ptr;
 };
 
-TsingInference::TsingInference() : impl_(std::make_unique<TsingInference::Impl>()) {
-    impl_->surf_params = std::make_unique<BufSurfaceParams>();
-    impl_->surf_ptr = std::make_shared<gddeploy::BufSurfaceWrapper>(new BufSurface, false);
-    impl_->surf_ptr->GetBufSurface()->surface_list = impl_->surf_params.get();
-}
+TsingInference::TsingInference() : impl_(std::make_unique<TsingInference::Impl>()) {}
 
 TsingInference::~TsingInference() {
     if (impl_->alg_impl) { impl_->alg_impl->WaitTaskDone(); }
@@ -59,15 +52,24 @@ bool TsingInference::init(const ModParms &parms) {
 
 void TsingInference::inference(const std::string &task_name, const std::shared_ptr<nodes::FrameInfo> &info,
                                const InferType type) {
+    auto surf = new BufSurface;
+    auto suf_subf_ptr = new gddeploy::BufSurfaceWrapper(surf, false);
+    auto buf_surf =
+        std::shared_ptr<gddeploy::BufSurfaceWrapper>(suf_subf_ptr, [&surf](gddeploy::BufSurfaceWrapper *ptr) {
+            delete ptr->GetBufSurface()->surface_list;
+            delete ptr->GetBufSurface();
+            delete ptr;
+        });
+    buf_surf->GetBufSurface()->surface_list = new BufSurfaceParams;
 
-    impl_->surf_ptr->GetBufSurface()->surface_list[0].width = info->src_frame->data->width;
-    impl_->surf_ptr->GetBufSurface()->surface_list[0].height = info->src_frame->data->height;
-    impl_->surf_ptr->GetBufSurface()->surface_list[0].color_format = GDDEPLOY_BUF_COLOR_FORMAT_NV12;
-    impl_->surf_ptr->GetBufSurface()->surface_list[0].pitch = 1;
-    impl_->surf_ptr->GetBufSurface()->surface_list[0].data_ptr = info->src_frame->data->buf[0]->data;
+    buf_surf->GetBufSurface()->surface_list[0].width = info->src_frame->data->width;
+    buf_surf->GetBufSurface()->surface_list[0].height = info->src_frame->data->height;
+    buf_surf->GetBufSurface()->surface_list[0].color_format = GDDEPLOY_BUF_COLOR_FORMAT_NV12;
+    buf_surf->GetBufSurface()->surface_list[0].pitch = 1;
+    buf_surf->GetBufSurface()->surface_list[0].data_ptr = info->src_frame->data->buf[0]->data;
 
     gddeploy::PackagePtr in = gddeploy::Package::Create(1);
-    in->data[0]->Set(impl_->surf_ptr);
+    in->data[0]->Set(buf_surf);
     in->data[0]->SetUserData(info->infer_frame_idx);
 
     impl_->alg_impl->InferAsync(
@@ -99,17 +101,26 @@ AlgoType TsingInference::inference(const std::string &task_name, const std::shar
                                    std::map<int, std::vector<algo::AlgoOutput>> &outputs) {
     int index = 0;
     for (const auto &[target_id, image] : info->ext_info.back().crop_images) {
-        impl_->surf_ptr->GetBufSurface()->surface_list[0].width = image.cols;
-        impl_->surf_ptr->GetBufSurface()->surface_list[0].height = image.rows;
-        impl_->surf_ptr->GetBufSurface()->surface_list[0].color_format = GDDEPLOY_BUF_COLOR_FORMAT_NV12;
-        impl_->surf_ptr->GetBufSurface()->surface_list[0].pitch = 1;
+        auto surf = new BufSurface;
+        auto suf_subf_ptr = new gddeploy::BufSurfaceWrapper(surf, false);
+        auto buf_surf =
+            std::shared_ptr<gddeploy::BufSurfaceWrapper>(suf_subf_ptr, [&surf](gddeploy::BufSurfaceWrapper *ptr) {
+                delete ptr->GetBufSurface()->surface_list;
+                delete ptr->GetBufSurface();
+                delete ptr;
+            });
+        buf_surf->GetBufSurface()->surface_list = new BufSurfaceParams;
+        buf_surf->GetBufSurface()->surface_list[0].width = image.cols;
+        buf_surf->GetBufSurface()->surface_list[0].height = image.rows;
+        buf_surf->GetBufSurface()->surface_list[0].color_format = GDDEPLOY_BUF_COLOR_FORMAT_NV12;
+        buf_surf->GetBufSurface()->surface_list[0].pitch = 1;
 
-        auto pstFrameInfo = (VIDEO_FRAME_INFO_S *)impl_->surf_ptr->GetBufSurface()->surface_list[0].data_ptr;
+        auto pstFrameInfo = (VIDEO_FRAME_INFO_S *)buf_surf->GetBufSurface()->surface_list[0].data_ptr;
         pstFrameInfo->stVFrame.u64VirAddr[0] = (TS_U64)&image.data;
 
         gddeploy::PackagePtr in = gddeploy::Package::Create(1);
         gddeploy::PackagePtr out = gddeploy::Package::Create(1);
-        in->data[0]->Set(impl_->surf_ptr);
+        in->data[0]->Set(buf_surf);
 
         impl_->alg_impl->InferSync(in, out);
         if (out->data[0]->HasMetaValue()) {
