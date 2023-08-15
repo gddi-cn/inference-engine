@@ -33,11 +33,7 @@ public:
         : opaque({true}), open_cb(open), packet_cb(read), exit_cb(exit) {}
     ~DemuxerPrivate() {
         opaque.demux_on = false;
-        thread_handle.reset();
-        if (fmt_ctx_) {
-            avformat_close_input(&fmt_ctx_);
-            fmt_ctx_ = nullptr;
-        }
+        if (thread_handle.joinable()) { thread_handle.join(); }
         av_dict_free(&dicts);
     }
 
@@ -61,8 +57,8 @@ protected:
     }
 
 private:
-    AVFormatContext *fmt_ctx_{nullptr};
-    std::unique_ptr<gddi::Thread> thread_handle{nullptr};
+    std::shared_ptr<AVFormatContext> fmt_ctx_{nullptr};
+    std::thread thread_handle;
 
     Demuxer_v3::OpenCallback open_cb{nullptr};
     Demuxer_v3::PacketCallback packet_cb{nullptr};
@@ -85,38 +81,35 @@ void DemuxerPrivate::open_stream(const std::string stream_url, const DemuxerOpti
     stream_url_ = stream_url;
     options_ = options;
 
-    thread_handle = std::make_unique<gddi::Thread>(
-        [this]() {
-            while (opaque.demux_on) {
-                try {
-                    open_stream_impl();
-                    if (open_cb) {
-                        auto codecpar = std::shared_ptr<AVCodecParameters>(
-                            avcodec_parameters_alloc(), [](AVCodecParameters *ptr) { avcodec_parameters_free(&ptr); });
-                        avcodec_parameters_copy(codecpar.get(), fmt_ctx_->streams[video_stream_index]->codecpar);
-                        open_cb(codecpar);
-                    }
-                    read_stream_packet(packet_cb);
-                    spdlog::info("Stream exit: {}, packeds: {}", stream_url_, pkt_count);
-                } catch (const std::exception &e) {
-                    spdlog::error(e.what());
-                    std::this_thread::sleep_for(std::chrono::seconds(3));
-                    if (!opaque.demux_on && exit_cb) {
-                        exit_cb(false);
-                        exit_cb = nullptr;
-                    }
+    thread_handle = std::thread([this]() {
+        while (opaque.demux_on) {
+            try {
+                open_stream_impl();
+                if (open_cb) {
+                    auto codecpar = std::shared_ptr<AVCodecParameters>(
+                        avcodec_parameters_alloc(), [](AVCodecParameters *ptr) { avcodec_parameters_free(&ptr); });
+                    avcodec_parameters_copy(codecpar.get(), fmt_ctx_->streams[video_stream_index]->codecpar);
+                    open_cb(codecpar);
                 }
-                if (is_video_file(stream_url_)) break;
+                read_stream_packet(packet_cb);
+                spdlog::info("Stream exit: {}, packeds: {}", stream_url_, pkt_count);
+            } catch (const std::exception &e) {
+                spdlog::error(e.what());
+                std::this_thread::sleep_for(std::chrono::seconds(3));
+                if (!opaque.demux_on && exit_cb) {
+                    exit_cb(false);
+                    exit_cb = nullptr;
+                }
             }
-            if (exit_cb) { exit_cb(true); }
-        },
-        gddi::Thread::DtorAction::join);
-    thread_handle->start();
+            if (is_video_file(stream_url_)) break;
+        }
+        if (exit_cb) { exit_cb(true); }
+    });
 }
 
 void DemuxerPrivate::open_stream_impl() {
-    if (fmt_ctx_) { avformat_close_input(&fmt_ctx_); }
-    fmt_ctx_ = avformat_alloc_context();
+    fmt_ctx_.reset();
+    av_dict_free(&dicts);
 
     stream_url_.erase(std::remove_if(stream_url_.begin(), stream_url_.end(),
                                      [](char x) -> bool { return x == ' ' || x == '\t' || x == '\r' || x == '\n'; }),
@@ -129,17 +122,20 @@ void DemuxerPrivate::open_stream_impl() {
         av_dict_set(&dicts, "timeout", "3000000", 0);
     }
 
+    auto fmt_ctx_ptr = avformat_alloc_context();
+
 #ifdef BM_PCIE_MODE
     av_dict_set_int(&dicts, "zero_copy", pcie_no_copyback, 0);
     av_dict_set_int(&dicts, "sophon_idx", sophon_idx, 0);
 #endif
 
     // av_dict_set(&dicts, "buffer_size", "1024000", 0);
-    av_opt_set_int(fmt_ctx_, "max_delay", 5000000, AV_OPT_SEARCH_CHILDREN);
+    av_opt_set_int(fmt_ctx_ptr, "max_delay", 5000000, AV_OPT_SEARCH_CHILDREN);
 
     opaque.time_point = std::chrono::steady_clock::now();
     /*-------------- set callback, avoid blocking --------------*/
-    fmt_ctx_->interrupt_callback.callback = [](void *opaque) {
+
+    fmt_ctx_ptr->interrupt_callback.callback = [](void *opaque) {
         OpaqueOptions *p_opaque = (OpaqueOptions *)opaque;
         if (!p_opaque->demux_on
             || std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - p_opaque->time_point)
@@ -149,24 +145,27 @@ void DemuxerPrivate::open_stream_impl() {
         }
         return 0;
     };
-    fmt_ctx_->interrupt_callback.opaque = &opaque;
+    fmt_ctx_ptr->interrupt_callback.opaque = &opaque;
     /*--------------------------- end --------------------------*/
 
-    if (avformat_open_input(&fmt_ctx_, stream_url_.c_str(), nullptr, &dicts) != 0) {
+    if (avformat_open_input(&fmt_ctx_ptr, stream_url_.c_str(), nullptr, &dicts) != 0) {
+        avformat_close_input(&fmt_ctx_ptr);
         throw std::runtime_error("Couldn't open input stream: " + stream_url_);
     }
 
+    fmt_ctx_ = std::shared_ptr<AVFormatContext>(fmt_ctx_ptr, [](AVFormatContext *ptr) { avformat_close_input(&ptr); });
+
     // read packets of a media file to get stream information
-    if (avformat_find_stream_info(fmt_ctx_, nullptr) < 0) {
+    if (avformat_find_stream_info(fmt_ctx_.get(), nullptr) < 0) {
         throw std::runtime_error("Couldn't find stream information: " + stream_url_);
     }
 
     // find the "best" stream in the file
-    video_stream_index = av_find_best_stream(fmt_ctx_, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    video_stream_index = av_find_best_stream(fmt_ctx_.get(), AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     if (video_stream_index < 0) { throw std::runtime_error("Didn't find a video stream: " + stream_url_); }
 
     // dump stream info
-    av_dump_format(fmt_ctx_, video_stream_index, stream_url_.c_str(), 0);
+    av_dump_format(fmt_ctx_.get(), video_stream_index, stream_url_.c_str(), 0);
 }
 
 void DemuxerPrivate::read_stream_packet(const Demuxer_v3::PacketCallback &packet_cb) {
@@ -174,7 +173,7 @@ void DemuxerPrivate::read_stream_packet(const Demuxer_v3::PacketCallback &packet
 
     while (opaque.demux_on) {
         auto packet = std::shared_ptr<AVPacket>(av_packet_alloc(), [](AVPacket *ptr) { av_packet_free(&ptr); });
-        if (av_read_frame(fmt_ctx_, packet.get()) == 0) {
+        if (av_read_frame(fmt_ctx_.get(), packet.get()) == 0) {
             opaque.time_point = std::chrono::steady_clock::now();
 
             ++pkt_count;

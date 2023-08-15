@@ -52,16 +52,13 @@ bool TsingInference::init(const ModParms &parms) {
 
 void TsingInference::inference(const std::string &task_name, const std::shared_ptr<nodes::FrameInfo> &info,
                                const InferType type) {
-    auto surf = new BufSurface;
-    auto suf_subf_ptr = new gddeploy::BufSurfaceWrapper(surf, false);
-    auto buf_surf =
-        std::shared_ptr<gddeploy::BufSurfaceWrapper>(suf_subf_ptr, [&surf](gddeploy::BufSurfaceWrapper *ptr) {
-            delete ptr->GetBufSurface()->surface_list;
-            delete ptr->GetBufSurface();
-            delete ptr;
-        });
+    auto buf_surf = std::shared_ptr<gddeploy::BufSurfaceWrapper>(new gddeploy::BufSurfaceWrapper(new BufSurface, false),
+                                                                 [](gddeploy::BufSurfaceWrapper *ptr) {
+                                                                     delete ptr->GetBufSurface()->surface_list;
+                                                                     delete ptr->GetBufSurface();
+                                                                     delete ptr;
+                                                                 });
     buf_surf->GetBufSurface()->surface_list = new BufSurfaceParams;
-
     buf_surf->GetBufSurface()->surface_list[0].width = info->src_frame->data->width;
     buf_surf->GetBufSurface()->surface_list[0].height = info->src_frame->data->height;
     buf_surf->GetBufSurface()->surface_list[0].color_format = GDDEPLOY_BUF_COLOR_FORMAT_NV12;

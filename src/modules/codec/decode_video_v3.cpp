@@ -35,6 +35,7 @@ public:
     ~DecoderPrivate() {
         open_cb_ = nullptr;
         decode_cb_ = nullptr;
+        av_dict_free(&dicts_);
     }
 
     bool open_decoder_impl(const std::shared_ptr<AVCodecParameters> &codecpar, const AVHWDeviceType type);
@@ -45,12 +46,12 @@ private:
     Decoder_v3::OpenCallback open_cb_;
     Decoder_v3::DecodeCallback decode_cb_;
 
-    static std::atomic_int count_;// 解码实例数
-
     int64_t frame_idx = 1;
 
     AVPixelFormat hw_pixfmt{AV_PIX_FMT_NONE};
     std::unique_ptr<BitStreamFilter_v3> bs_filter{nullptr};
+
+    AVDictionary *dicts_ = nullptr;
     std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)> codec_ctx{nullptr, nullptr};
 
     static AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts) {
@@ -66,12 +67,9 @@ private:
     }
 };
 
-std::atomic_int DecoderPrivate::count_{0};
-
 bool DecoderPrivate::open_decoder_impl(const std::shared_ptr<AVCodecParameters> &codecpar, const AVHWDeviceType type) {
     codec_ctx.reset();
-
-    if (count_ >= 4) { throw std::runtime_error("tx5368 decoder instance count limit: " + std::to_string(count_)); }
+    av_dict_free(&dicts_);
 
     const AVCodec *decoder = nullptr;
     switch (codecpar->codec_id) {
@@ -93,7 +91,10 @@ bool DecoderPrivate::open_decoder_impl(const std::shared_ptr<AVCodecParameters> 
         }
 
         while (true) {
-            auto avframe = std::shared_ptr<AVFrame>(av_frame_alloc(), [](AVFrame *ptr) { av_frame_free(&ptr); });
+            auto avframe = std::shared_ptr<AVFrame>(av_frame_alloc(), [](AVFrame *ptr) {
+                av_frame_free(&ptr);
+                delete ptr;
+            });
 
             int ret = avcodec_receive_frame(codec_ctx.get(), avframe.get());
             if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
@@ -110,14 +111,12 @@ bool DecoderPrivate::open_decoder_impl(const std::shared_ptr<AVCodecParameters> 
     codec_ctx = std::unique_ptr<AVCodecContext, void (*)(AVCodecContext *)>(avcodec_alloc_context3(decoder),
                                                                             [](AVCodecContext *ptr) {
                                                                                 avcodec_free_context(&ptr);
-                                                                                --count_;
+                                                                                delete ptr;
                                                                             });
     if (codec_ctx.get() == nullptr) {
         spdlog::error("Failed to alloc context of avcodec");
         return false;
     }
-
-    ++count_;
 
     if (avcodec_parameters_to_context(codec_ctx.get(), codecpar.get()) < 0) {
         spdlog::error("Failed in init_decoder_context");
@@ -145,8 +144,6 @@ bool DecoderPrivate::open_decoder_impl(const std::shared_ptr<AVCodecParameters> 
         spdlog::error("Failed to open codec for stream");
         return false;
     }
-
-    av_dict_free(&opts);
 
     if (open_cb_) {
         auto codec_parameters = std::shared_ptr<AVCodecParameters>(
