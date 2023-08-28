@@ -601,7 +601,7 @@ static int set_chn_attr(VENC_CHN_ATTR_S *attr, int picWidth, int picHeight) {
     attr->stVencAttr.stAttrJpege.stMPFCfg.astLargeThumbNailSize[0].u32Height = 10;
     attr->stVencAttr.stAttrJpege.stMPFCfg.astLargeThumbNailSize[1].u32Width = 12;
     attr->stVencAttr.stAttrJpege.stMPFCfg.astLargeThumbNailSize[1].u32Height = 12;
-    attr->stRcAttr.stMjpegFixQp.u32Qfactor = 100;
+    attr->stRcAttr.stMjpegFixQp.u32Qfactor = 80;
 
     JPEG_PRT("%s exit!", __FUNCTION__);
     return 0;
