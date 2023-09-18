@@ -1054,15 +1054,15 @@ bool TsingJpegEncode::init_codecer(const uint32_t width, const uint32_t height) 
     return true;
 }
 
-uint32_t TsingJpegEncode::codec_image(const std::shared_ptr<AVFrame> &frame, std::vector<uint8_t> &vec_jpeg_data) {
-    JPEG_COMPRESS_S jpeg_data;
-    jpeg_data.jpeg_chn = init_para_.jpeg_chn;
-    jpeg_data.frame_in = frame.get();
-    jpeg_data.out_image_buffer = vec_jpeg_data.data();
-    jpeg_data.out_image_size = frame->width * frame->height;
-    jpeg_encode_convert(&jpeg_data);
+uint32_t TsingJpegEncode::codec_image(const std::shared_ptr<AVFrame> &frame, const uint8_t *jpeg_data) {
+    JPEG_COMPRESS_S jpeg_compress;
+    jpeg_compress.jpeg_chn = init_para_.jpeg_chn;
+    jpeg_compress.frame_in = frame.get();
+    jpeg_compress.out_image_buffer = const_cast<uint8_t*>(jpeg_data);
+    jpeg_compress.out_image_size = frame->width * frame->height;
+    jpeg_encode_convert(&jpeg_compress);
 
-    return jpeg_data.out_image_size;
+    return jpeg_compress.out_image_size;
 }
 
 bool TsingJpegEncode::save_image(const std::shared_ptr<AVFrame> &frame, const std::string &path) {

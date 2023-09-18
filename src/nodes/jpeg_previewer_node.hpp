@@ -38,11 +38,6 @@ public:
             scale_ = 1;
 
             if (masking_) {
-                if (jpeg_data_.empty()) {
-                    cv::imencode(".jpg", cv::Mat(frame->frame_info->height(), frame->frame_info->width(), CV_8U, 100),
-                                 jpeg_data_);
-                }
-
                 // 每分钟更新一次背景
                 if (frame->frame_info->ext_info.front().infer_target_info.empty()) {
                     if (!jpeg_encoder_) {
@@ -53,7 +48,7 @@ public:
                         }
                     }
 
-                    jpeg_encoder_->codec_image(frame->frame_info->src_frame->data, jpeg_data_);
+                    jpeg_encoder_->codec_image(frame->frame_info->src_frame->data, jpeg_data_.data());
                 }
             }
 
@@ -309,7 +304,7 @@ public:
                 }
             }
 
-            int jpeg_data_size = jpeg_encoder_->codec_image(frame->frame_info->src_frame->data, jpeg_data_);
+            int jpeg_data_size = jpeg_encoder_->codec_image(frame->frame_info->src_frame->data, jpeg_data_.data());
             buffer = std::vector<uchar>(4 + jpeg_data_size + box_string.size());
             memcpy(buffer.data(), &jpeg_data_size, sizeof(jpeg_data_size));
             memcpy(buffer.data() + sizeof(jpeg_data_size), jpeg_data_.data(), jpeg_data_size);
@@ -319,8 +314,6 @@ public:
         });
     }
 
-    void on_setup() override { jpeg_data_ = std::vector<uint8_t>(4096 * 2160); }
-
 private:
     std::string address_{"tcp://*:9000"};
     std::string node_name_;
@@ -328,7 +321,7 @@ private:
     int scale_{1};
     bool masking_{false};
 
-    std::vector<uint8_t> jpeg_data_;
+    std::array<uint8_t, 4096 * 2160> jpeg_data_;
 
     std::unique_ptr<codec::TsingJpegEncode> jpeg_encoder_;
 };// namespace nodes

@@ -148,7 +148,7 @@ public:
     ~TsingJpegEncode();
 
     bool init_codecer(const uint32_t width, const uint32_t height);
-    uint32_t codec_image(const std::shared_ptr<AVFrame> &frame, std::vector<uint8_t> &vec_jpeg_data);
+    uint32_t codec_image(const std::shared_ptr<AVFrame> &frame, const uint8_t *jpeg_data);
     bool save_image(const std::shared_ptr<AVFrame> &frame, const std::string &path);
 
 private:
