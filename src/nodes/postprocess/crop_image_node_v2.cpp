@@ -5,8 +5,8 @@
 namespace gddi {
 namespace nodes {
 
-#define ALIGN_WIDTH 64
-#define ALGIN_HEIGHT 16
+#define ALIGN_WIDTH 32
+#define ALGIN_HEIGHT 32
 #define ALIGN(x, a) (((x) + (a)-1) & ~((a)-1))
 
 static Rect2f algin_rect(const Rect2f &rect, int img_w, int img_h, float factor) {
@@ -25,6 +25,8 @@ static Rect2f algin_rect(const Rect2f &rect, int img_w, int img_h, float factor)
     // 边界判断
     if (resize_rect.x < 0) resize_rect.x = 0;
     if (resize_rect.y < 0) resize_rect.y = 0;
+    if (resize_rect.width < 128) resize_rect.width = 128;
+    if (resize_rect.height < 128) resize_rect.height = 128;
     if (resize_rect.x + resize_rect.width > img_w) resize_rect.x = img_w - resize_rect.width;
     if (resize_rect.y + resize_rect.height > img_h) resize_rect.y = img_h - resize_rect.height;
 

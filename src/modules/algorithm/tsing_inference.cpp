@@ -183,22 +183,29 @@ AlgoType TsingInference::inference(const std::string &task_name, const std::shar
                                    std::map<int, std::vector<algo::AlgoOutput>> &outputs) {
     int index = 0;
     for (const auto &[target_id, image] : info->ext_info.back().crop_images) {
-        auto surf = new BufSurface;
-        auto suf_subf_ptr = new gddeploy::BufSurfaceWrapper(surf, false);
-        auto buf_surf =
-            std::shared_ptr<gddeploy::BufSurfaceWrapper>(suf_subf_ptr, [&surf](gddeploy::BufSurfaceWrapper *ptr) {
-                delete ptr->GetBufSurface()->surface_list;
-                delete ptr->GetBufSurface();
-                delete ptr;
-            });
-        buf_surf->GetBufSurface()->surface_list = new BufSurfaceParams;
-        buf_surf->GetBufSurface()->surface_list[0].width = image.cols;
-        buf_surf->GetBufSurface()->surface_list[0].height = image.rows;
-        buf_surf->GetBufSurface()->surface_list[0].color_format = GDDEPLOY_BUF_COLOR_FORMAT_NV12;
-        buf_surf->GetBufSurface()->surface_list[0].pitch = 1;
+        auto buf_surf = std::make_shared<gddeploy::BufSurfaceWrapper>(new BufSurface, true);
+        BufSurfaceCreateParams params;
+        params.mem_type = GDDEPLOY_BUF_MEM_TS;
+        params.device_id = 0;
+        params.width = image.cols;
+        params.height = image.rows * 2 / 3;
+        params.color_format = GDDEPLOY_BUF_COLOR_FORMAT_NV12;
+        params.force_align_1 = 1;
+        params.bytes_per_pix = 1;
+        params.size = 0;
+        params.batch_size = 1;
+
+        BufSurface *surf = buf_surf->GetBufSurface();
+        memset(surf, 0, sizeof(BufSurface));
+        gddeploy::CreateSurface(&params, surf);
 
         auto pstFrameInfo = (VIDEO_FRAME_INFO_S *)buf_surf->GetBufSurface()->surface_list[0].data_ptr;
-        pstFrameInfo->stVFrame.u64VirAddr[0] = (TS_U64)&image.data;
+        auto size = av_image_get_buffer_size(AV_PIX_FMT_NV12, params.width, params.height, 32);
+        uint8_t *image_data[AV_NUM_DATA_POINTERS];
+        image_data[0] = image.data;
+        image_data[1] = image.data + params.width * params.height;
+        av_image_copy_to_buffer((uint8_t *)pstFrameInfo->stVFrame.u64VirAddr[0], size, image_data,
+                                (const int *)&params.width, AV_PIX_FMT_NV12, params.width, params.height, 32);
 
         gddeploy::PackagePtr in = gddeploy::Package::Create(1);
         gddeploy::PackagePtr out = gddeploy::Package::Create(1);

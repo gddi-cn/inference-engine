@@ -85,19 +85,18 @@ static auto image_crop(const std::shared_ptr<AVFrame> &image, std::map<int, Rect
     for (const auto &[idx, rect] : crop_rects) {
         if (!has_init_crop) {
             has_init_crop = 1;
-
-            crop_attr.src_w = image->width;
-            crop_attr.src_h = image->height;
-            crop_attr.dst_w = rect.width;
-            crop_attr.dst_h = rect.height;
-            crop_attr.crop_rect.x = rect.x;
-            crop_attr.crop_rect.y = rect.y;
-            crop_attr.crop_rect.w = rect.width;
-            crop_attr.crop_rect.h = rect.height;
-
             TSCV_CreateVb(image->width, image->height, PIXEL_FORMAT_NV_12, &crop_attr.dst_phy_addr,
                           &crop_attr.dst_vir_addr);
         }
+
+        crop_attr.src_w = image->width;
+        crop_attr.src_h = image->height;
+        crop_attr.dst_w = rect.width;
+        crop_attr.dst_h = rect.height;
+        crop_attr.crop_rect.x = rect.x;
+        crop_attr.crop_rect.y = rect.y;
+        crop_attr.crop_rect.w = rect.width;
+        crop_attr.crop_rect.h = rect.height;
 
         tscv_vgs_crop_nv12(image.get(), crop_attr);
 
